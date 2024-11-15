@@ -73,23 +73,60 @@ def delete_task():
 # Modify task
 def modify_task():
     df = load_tasks()
-    task_titles = df["title"].tolist()
-    selected_task = st.selectbox("Select Task to Modify", task_titles)
-    task = df[df["title"] == selected_task].iloc[0]
+    if df.empty:
+        st.warning("No tasks available to modify.")
+        return
 
     with st.form("modify_task_form"):
-        new_title = st.text_input("Task Title", task["title"])
-        new_category = st.selectbox("Category", ["Work", "Personal", "School", "Others"], index=["Work", "Personal", "School", "Others"].index(task["category"]))
-        new_priority = st.selectbox("Priority", ["High", "Medium", "Low"], index=["High", "Medium", "Low"].index(task["priority"]))
-        deadline_date, deadline_time = task["deadline"].split(" ")
-        new_deadline_date = st.date_input("Deadline Date", datetime.strptime(deadline_date, '%Y-%m-%d').date())
-        new_deadline_time = st.time_input("Deadline Time", datetime.strptime(deadline_time, '%H:%M').time())
-        submit = st.form_submit_button("Modify Task")
+        # Select task to modify
+        selected_task_title = st.selectbox("Select Task to Modify", df["title"].tolist())
+        selected_task = df[df["title"] == selected_task_title].iloc[0]
 
-        if submit:
-            df.loc[df["title"] == selected_task, ["title", "category", "priority", "deadline"]] = [new_title, new_category, new_priority, f"{new_deadline_date} {new_deadline_time}"]
+        # Extract deadline safely
+        deadline_date = None
+        deadline_time = None
+        if selected_task["deadline"] and selected_task["deadline"] != "None":
+            try:
+                deadline_parts = selected_task["deadline"].split(" ")
+                deadline_date = datetime.strptime(deadline_parts[0], '%Y-%m-%d').date()
+                if len(deadline_parts) > 1:
+                    deadline_time = datetime.strptime(deadline_parts[1], '%H:%M').time()
+            except ValueError:
+                st.warning("The selected task has an invalid deadline format. Please update it.")
+
+        # Modify task fields
+        new_title = st.text_input("Title", value=selected_task["title"])
+        new_category = st.selectbox(
+            "Category",
+            options=["Work", "Personal", "School", "Others"],
+            index=["Work", "Personal", "School", "Others"].index(selected_task["category"]),
+        )
+        new_priority = st.selectbox(
+            "Priority",
+            options=["High", "Medium", "Low"],
+            index=["High", "Medium", "Low"].index(selected_task["priority"]),
+        )
+        new_deadline_date = st.date_input("Deadline Date", deadline_date)
+        new_deadline_time = st.time_input("Deadline Time", deadline_time)
+
+        submitted = st.form_submit_button("Save Changes")
+
+        if submitted:
+            # Update the task
+            new_deadline = f"{new_deadline_date} {new_deadline_time}" if new_deadline_date and new_deadline_time else "None"
+            df.loc[df["title"] == selected_task_title, ["title", "category", "priority", "deadline"]] = [
+                new_title,
+                new_category,
+                new_priority,
+                new_deadline,
+            ]
             save_tasks(df)
-            st.success("Task modified successfully!")
+            st.success(f"Task '{new_title}' has been updated!")
+
+            # Refresh task view
+            st.write("Updated Tasks:")
+            st.dataframe(df)
+
 
 # Mark task as completed
 def mark_task_done():
@@ -102,8 +139,10 @@ def mark_task_done():
         completed_df = df[df["title"] == selected_task]
         df = df[df["title"] != selected_task]
         save_tasks(df)
-        save_tasks(load_tasks(True).append(completed_df), completed=True)
+        completed_tasks_df = pd.concat([load_tasks(True), completed_df], ignore_index=True)
+        save_tasks(completed_tasks_df, completed=True)
         st.success("Task marked as complete!")
+
 
 # Filter tasks
 def filter_tasks():

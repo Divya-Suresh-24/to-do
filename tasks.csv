@@ -1,8 +1,6 @@
 title,category,priority,deadline,status
-fm m,School,Medium,2024-11-19 06:30:00,Pending
-fm m,School,Medium,2024-11-19 06:30:00,Pending
-ui,Personal,Low,2024-11-12 06:30:00,Pending
-ui,Personal,Low,2024-11-12 06:30:00,Pending
-ui,Personal,Low,2024-11-13 06:30:00,Pending
-ui,Personal,Low,2024-11-13 14:15:00,Pending
-ui,Personal,Low,2024-11-13 16:45:00,Pending
+ui n,Others,Medium,2024-11-20 06:45:00,Pending
+ui n,Others,Medium,2024-11-20 06:45:00,Pending
+ui n,Others,Medium,2024-11-20 06:45:00,Pending
+ui n,Others,Medium,2024-11-20 06:45:00,Pending
+ui n,Others,Medium,2024-11-20 06:45:00,Pending
