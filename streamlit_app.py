@@ -77,11 +77,11 @@ def view_tasks(show_completed=False):
 
             # Ensure unique keys by combining index and title
             if st.button("Mark as Complete", key=f"complete_{index}_{row['title']}"):
-                mark_task_as_completed(row["title"])
+                mark_task_done_specific(row["title"])
                 st.session_state["rerun"] = not st.session_state.get("rerun", False)
 
             if st.button("Delete", key=f"delete_{index}_{row['title']}"):
-                delete_specific_task(row["title"])
+                delete_task_specific(row["title"])
                 st.session_state["rerun"] = not st.session_state.get("rerun", False)
 
             st.write("---")  # Separator between tasks
