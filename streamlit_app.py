@@ -62,37 +62,12 @@ def add_task():
             save_tasks(updated_tasks)
             st.success("Task added successfully!")
 
-# View tasks in a vertical list with actions
-def view_tasks(show_completed=False):
-    df = load_tasks(show_completed=show_completed)
-    if df.empty:
-        st.info("No tasks to display.")
-    else:
-        for index, row in df.iterrows():
-            st.write(f"**Title:** {row['title']}")
-            st.write(f"**Category:** {row['category']}")
-            st.write(f"**Priority:** {row['priority']}")
-            st.write(f"**Deadline:** {row['deadline']}")
-            st.write(f"**Status:** {row['status']}")
-
-            # Ensure unique keys by combining index and title
-            if st.button("Mark as Complete", key=f"complete_{index}_{row['title']}"):
-                mark_task_done_specific(row["title"])
-                st.session_state["rerun"] = not st.session_state.get("rerun", False)
-
-            if st.button("Delete", key=f"delete_{index}_{row['title']}"):
-                delete_task_specific(row["title"])
-                st.session_state["rerun"] = not st.session_state.get("rerun", False)
-
-            st.write("---")  # Separator between tasks
-
-
 # Modify a specific task
 def modify_task_specific(task_title):
     df = load_tasks()
     task = df[df["title"] == task_title].iloc[0]
 
-    with st.form("modify_task_form"):
+    with st.form(f"modify_task_form_{task_title}"):
         st.subheader(f"Modify Task: {task_title}")
         new_title = st.text_input("Title", value=task["title"])
         new_category = st.selectbox("Category", ["Work", "Personal", "School", "Others"], index=["Work", "Personal", "School", "Others"].index(task["category"]))
@@ -105,7 +80,7 @@ def modify_task_specific(task_title):
                 deadline_parts = task["deadline"].split(" ")
                 deadline_date = datetime.strptime(deadline_parts[0], "%Y-%m-%d").date()
                 if len(deadline_parts) > 1:
-                    deadline_time = datetime.strptime(deadline_parts[1], "%H:%M").time()
+                    deadline_time = datetime.strptime(deadline_parts[1], "%H:%M:%S").time()
             except ValueError:
                 st.warning("Invalid deadline format. Please update it.")
 
@@ -118,6 +93,33 @@ def modify_task_specific(task_title):
             df.loc[df["title"] == task_title, ["title", "category", "priority", "deadline"]] = [new_title, new_category, new_priority, new_deadline]
             save_tasks(df)
             st.success(f"Task '{task_title}' updated successfully!")
+            st.rerun()  # Refresh UI
+
+# Mark a specific task as completed
+def mark_task_done_specific(task_title):
+    df = load_tasks()
+    task = df[df["title"] == task_title]
+    if not task.empty:
+        df = df[df["title"] != task_title]
+        save_tasks(df)
+        completed_df = load_tasks(show_completed=True)
+        completed_df = pd.concat([completed_df, task], ignore_index=True)
+        save_tasks(completed_df, completed=True)
+        st.success(f"Task '{task_title}' marked as complete!")
+        st.rerun()  # Refresh UI
+
+# Mark a specific task as pending
+def mark_task_pending_specific(task_title):
+    completed_df = load_tasks(show_completed=True)
+    task = completed_df[completed_df["title"] == task_title]
+    if not task.empty:
+        completed_df = completed_df[completed_df["title"] != task_title]
+        save_tasks(completed_df, completed=True)
+        pending_df = load_tasks()
+        pending_df = pd.concat([pending_df, task], ignore_index=True)
+        save_tasks(pending_df)
+        st.success(f"Task '{task_title}' marked as pending!")
+        st.rerun()  # Refresh UI
 
 # Delete a specific task
 def delete_task_specific(task_title, completed=False):
@@ -125,24 +127,40 @@ def delete_task_specific(task_title, completed=False):
     df = df[df["title"] != task_title]
     save_tasks(df, completed=completed)
     st.success(f"Task '{task_title}' deleted successfully!")
+    st.rerun()  # Refresh UI
 
-# Mark a specific task as completed
-def mark_task_done_specific(task_title):
-    df = load_tasks()
-    df.loc[df["title"] == task_title, "status"] = "Done"
-    completed_df = df[df["title"] == task_title]
-    df = df[df["title"] != task_title]
-    save_tasks(df)
-    completed_tasks_df = pd.concat([load_tasks(True), completed_df], ignore_index=True)
-    save_tasks(completed_tasks_df, completed=True)
-    st.success(f"Task '{task_title}' marked as complete!")
+# View tasks
+def view_tasks(show_completed=False):
+    df = load_tasks(show_completed=show_completed)
+    if df.empty:
+        st.info("No tasks to display.")
+    else:
+        for index, row in df.iterrows():
+            unique_key = f"{index}_{row['title']}_{'completed' if show_completed else 'pending'}"
+            st.write(f"**Title:** {row['title']}")
+            st.write(f"**Category:** {row['category']}")
+            st.write(f"**Priority:** {row['priority']}")
+            st.write(f"**Deadline:** {row['deadline']}")
+            st.write(f"**Status:** {row['status']}")
+
+            if show_completed:
+                if st.button("Mark as Pending", key=f"pending_{unique_key}"):
+                    mark_task_pending_specific(row["title"])
+            else:
+                if st.button("Mark as Complete", key=f"complete_{unique_key}"):
+                    mark_task_done_specific(row["title"])
+                if st.button("Modify", key=f"modify_{unique_key}"):
+                    modify_task_specific(row["title"])
+            if st.button("Delete", key=f"delete_{unique_key}"):
+                delete_task_specific(row["title"], completed=show_completed)
+
+            st.write("---")
 
 # Streamlit App
 def main():
     st.title("Task Manager")
     initialize_csv()
 
-    # Tab-based Navigation
     tab1, tab2, tab3 = st.tabs(["Add New Task", "View Tasks", "View Completed Tasks"])
     with tab1:
         add_task()
