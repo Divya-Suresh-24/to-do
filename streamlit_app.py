@@ -68,23 +68,24 @@ def view_tasks(show_completed=False):
     if df.empty:
         st.info("No tasks to display.")
     else:
-        for i, row in df.iterrows():
+        for index, row in df.iterrows():
             st.write(f"**Title:** {row['title']}")
             st.write(f"**Category:** {row['category']}")
             st.write(f"**Priority:** {row['priority']}")
             st.write(f"**Deadline:** {row['deadline']}")
             st.write(f"**Status:** {row['status']}")
 
-            # Ensure unique keys for each button by including row index
-            if st.button("Mark as Complete", key=f"complete_{i}"):
-                mark_task_done_specific(row["title"])
-                st.experimental_rerun()  # Refresh the view to reflect changes
+            # Ensure unique keys by combining index and title
+            if st.button("Mark as Complete", key=f"complete_{index}_{row['title']}"):
+                mark_task_as_completed(row["title"])
+                st.session_state["rerun"] = not st.session_state.get("rerun", False)
 
-            if st.button("Delete", key=f"delete_{i}"):
-                delete_task_specific(row["title"])
-                st.experimental_rerun()  # Refresh the view to reflect changes
+            if st.button("Delete", key=f"delete_{index}_{row['title']}"):
+                delete_specific_task(row["title"])
+                st.session_state["rerun"] = not st.session_state.get("rerun", False)
 
             st.write("---")  # Separator between tasks
+
 
 # Modify a specific task
 def modify_task_specific(task_title):
