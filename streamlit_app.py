@@ -125,7 +125,7 @@ def delete_task_specific(task_title, completed=False):
     save_tasks(df, completed=completed)
     st.success(f"Task '{task_title}' deleted successfully!")
 
-# Mark a specific task as complete
+# Mark a specific task as completed
 def mark_task_done_specific(task_title):
     df = load_tasks()
     df.loc[df["title"] == task_title, "status"] = "Done"
